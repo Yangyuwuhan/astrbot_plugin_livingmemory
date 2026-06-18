@@ -17,14 +17,23 @@ if TYPE_CHECKING:
 class MemoryHandler:
     """记忆管理处理器"""
 
-    def __init__(self, utils: "PageApiUtils"):
+    def __init__(
+        self,
+        utils: "PageApiUtils",
+        archive_store: Any = None,
+        memory_processor: Any = None,
+    ):
         """
         初始化记忆管理处理器
 
         Args:
             utils: PageApiUtils 工具实例
+            archive_store: 对话归档存储（可选）
+            memory_processor: 记忆处理器（可选，用于重建）
         """
         self.utils = utils
+        self.archive_store = archive_store
+        self.memory_processor = memory_processor
 
     async def list_memories(self, memory_engine) -> dict[str, Any]:
         """
@@ -567,6 +576,93 @@ class MemoryHandler:
                 "failed_count": len(failed_ids),
                 "total": len(memory_ids),
                 "failed_ids": failed_ids,
+            }
+        )
+
+    async def get_archive_detail(self, memory_engine) -> dict[str, Any]:
+        """获取记忆对应的原始对话（GET /memory/archive?memory_id=xxx）"""
+        from ..utils.number_utils import clamp_float
+
+        query = request.args
+        try:
+            memory_id = int(query.get("memory_id", ""))
+        except (TypeError, ValueError):
+            return self.utils.error("memory_id 必须是整数")
+
+        if not self.archive_store:
+            return self.utils.ok({"found": False, "conversation_text": ""})
+
+        record = await self.archive_store.get(memory_id)
+        if not record:
+            return self.utils.ok({"found": False, "conversation_text": ""})
+
+        return self.utils.ok(
+            {
+                "found": True,
+                "conversation_text": record["conversation_text"],
+                "session_id": record["session_id"],
+                "message_count": record["message_count"],
+                "source_start": record["source_start"],
+                "source_end": record["source_end"],
+            }
+        )
+
+    async def rebuild_from_archive(self, memory_engine) -> dict[str, Any]:
+        """从原始对话重建记忆（POST /memories/rebuild body: {memory_id, delete_old}）"""
+        from ..managers.memory_engine import MemoryEngine
+
+        payload = await request.get_json(silent=True) or {}
+        try:
+            memory_id = int(payload.get("memory_id"))
+        except (TypeError, ValueError):
+            return self.utils.error("memory_id 必须是整数")
+
+        delete_old = bool(payload.get("delete_old", False))
+
+        if not self.archive_store or not self.memory_processor:
+            return self.utils.error("存档或记忆处理器未就绪")
+
+        record = await self.archive_store.get(memory_id)
+        if not record:
+            return self.utils.error("未找到原始对话存档，无法重建")
+
+        try:
+            content, metadata, importance, _ = await self.memory_processor.process_conversation(
+                conversation_text=record["conversation_text"],
+                is_group_chat=False,
+                persona_id=record.get("persona_id"),
+            )
+
+            atoms = self.memory_processor.classify_atoms_from_metadata(
+                metadata=metadata,
+                parent_importance=importance,
+                session_id=record.get("session_id"),
+                persona_id=record.get("persona_id"),
+            )
+        except Exception as e:
+            logger.error(f"[PageAPI] 重建记忆 LLM 处理失败: {e}", exc_info=True)
+            return self.utils.error(f"LLM 处理失败: {e}")
+
+        if not isinstance(memory_engine, MemoryEngine):
+            return self.utils.error("MemoryEngine 类型不正确，无法调用 rebuild_memory")
+
+        try:
+            old_id, new_id = await memory_engine.rebuild_memory(
+                memory_id=memory_id,
+                content=content,
+                metadata=metadata,
+                atoms=atoms,
+                delete_old=delete_old,
+            )
+        except Exception as e:
+            logger.error(f"[PageAPI] 重建记忆失败: {e}", exc_info=True)
+            return self.utils.error(f"重建失败: {e}")
+
+        return self.utils.ok(
+            {
+                "old_id": old_id,
+                "new_id": new_id,
+                "deleted_old": delete_old,
             }
         )
 

@@ -35,7 +35,11 @@ class PluginPageApi:
 
         # 初始化各个处理器
         self.stats_handler = StatsHandler(self.utils)
-        self.memory_handler = MemoryHandler(self.utils)
+        self.memory_handler = MemoryHandler(
+            self.utils,
+            archive_store=getattr(plugin.initializer, "archive_store", None) if plugin.initializer else None,
+            memory_processor=plugin.initializer.memory_processor if plugin.initializer else None,
+        )
         self.recall_handler = RecallHandler(self.utils)
         self.graph_handler = GraphHandler(self.utils)
 
@@ -90,6 +94,18 @@ class PluginPageApi:
             self.batch_update_memories,
             ["POST"],
             "LivingMemory Page batch update memories",
+        )
+        register(
+            f"{PAGE_API_PREFIX}/memory/archive",
+            self.get_memory_archive,
+            ["GET"],
+            "LivingMemory Page memory archive conversation",
+        )
+        register(
+            f"{PAGE_API_PREFIX}/memories/rebuild",
+            self.rebuild_memory,
+            ["POST"],
+            "LivingMemory Page rebuild memory from archive",
         )
         register(
             f"{PAGE_API_PREFIX}/recall/test",
@@ -160,6 +176,20 @@ class PluginPageApi:
         if error:
             return error
         return await self.memory_handler.batch_update_memories(ready["memory_engine"])
+
+    async def get_memory_archive(self):
+        """获取记忆对应的原始对话"""
+        ready, error = await self._ensure_plugin_ready()
+        if error:
+            return error
+        return await self.memory_handler.get_archive_detail(ready["memory_engine"])
+
+    async def rebuild_memory(self):
+        """从原始对话重建记忆"""
+        ready, error = await self._ensure_plugin_ready()
+        if error:
+            return error
+        return await self.memory_handler.rebuild_from_archive(ready["memory_engine"])
 
     async def test_recall(self):
         """测试记忆召回功能"""

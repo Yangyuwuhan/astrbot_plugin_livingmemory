@@ -220,6 +220,12 @@
                 "hint": "累计对话达到该轮次（一问一答为一轮）后触发总结并写入记忆。",
                 "type": "int",
                 "default": 10
+            },
+            "archive_conversation_enabled": {
+                "description": "记录原始对话",
+                "hint": "开启后会在生成记忆时同时保存原始对话历史，用于在 Dashboard 中查看和重建记忆。",
+                "type": "bool",
+                "default": false
             }
         }
     },

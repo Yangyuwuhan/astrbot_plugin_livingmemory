@@ -22,7 +22,8 @@
       "rebuild_graph": ["确认图记忆功能已启用","确认数据库与索引文件可读写","查看日志定位具体失败文档"],
       "summarize": ["确认当前会话至少有 2 条未总结消息","确认 LLM Provider 可正常响应","检查日志中的 summary 处理堆栈"],
       "reset": ["确认会话 ID 有效且会话存储可访问","确认数据库未被占用","查看日志中的 clear_session 调用堆栈"],
-      "cleanup": ["确认当前会话存在可读取的历史记录","确认对话存储可读写","查看日志中的 cleanup 调用堆栈"]
+      "cleanup": ["确认当前会话存在可读取的历史记录","确认对话存储可读写","查看日志中的 cleanup 调用堆栈"],
+      "common": ["确认插件已完全初始化","检查日志中的异常堆栈信息","重试操作"]
     }
   },
   "status": {
@@ -89,6 +90,14 @@
   },
   "help": {
     "text": "LivingMemory 使用指南\n\n核心指令:\n/lmem status              查看系统状态\n/lmem search <关键词> [数量]  搜索记忆(默认5条)\n/lmem forget <ID>          删除指定记忆\n/lmem rebuild-index       重建索引（修复索引不一致）\n/lmem rebuild-graph       重建图记忆索引（回填旧记忆）\n/lmem webui               查看 WebUI 管理界面入口\n/lmem summarize           立即触发当前会话的记忆总结\n/lmem reset               重置当前会话记忆上下文\n/lmem cleanup [preview|exec] 清理历史消息中的记忆片段(默认preview预演)\n/lmem help                显示此帮助\n\n使用建议:\n• 日常查询使用 search 指令\n• 复杂管理请在 AstrBot 仪表盘中进入 插件 -> LivingMemory -> Pages -> dashboard\n• 记忆会自动保存对话内容\n• 使用 forget 删除敏感信息\n• 索引不一致时执行 rebuild-index\n• 启用图记忆后建议执行 rebuild-graph 回填旧数据\n• 更新插件后建议执行 cleanup 清理旧数据\n\ncleanup 命令示例:\n  /lmem cleanup          # 预演模式,仅显示统计\n  /lmem cleanup preview  # 同上\n  /lmem cleanup exec     # 执行实际清理\n\n更多信息: https://github.com/lxfight-s-Astrbot-Plugins/astrbot_plugin_livingmemory"
+  },
+  "archive": {
+    "action_name": "获取上下文",
+    "not_found": "未找到记忆 #{id} 的对话存档。",
+    "found": "【原始对话 · 记忆 #{id}】",
+    "rebuild_not_found": "未找到原始对话存档，无法重建记忆 #{id}。\n请确认该记忆生成时已开启"记录原始对话"配置。",
+    "rebuild_success": "记忆 #{old} 已重建为新 ID: #{new}。",
+    "rebuild_failed": "重建记忆 #{0} 失败: {error}"
   },
   "init": {
     "ready": "插件已就绪。可使用 /lmem help 查看可用命令。",

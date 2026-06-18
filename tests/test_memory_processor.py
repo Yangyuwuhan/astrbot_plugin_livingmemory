@@ -59,7 +59,7 @@ async def test_process_conversation_success():
     )
     processor = MemoryProcessor(llm_provider=llm, context=None)
 
-    content, metadata, importance = await processor.process_conversation(
+    content, metadata, importance, _ = await processor.process_conversation(
         messages=_make_messages(),
         is_group_chat=False,
         persona_id=None,
@@ -76,7 +76,7 @@ async def test_process_conversation_handles_non_json_response_with_fallback():
     llm = _DummyLLMProvider("summary=测试, importance=0.6")
     processor = MemoryProcessor(llm_provider=llm, context=None)
 
-    content, metadata, importance = await processor.process_conversation(
+    content, metadata, importance, _ = await processor.process_conversation(
         messages=_make_messages(),
         is_group_chat=False,
         persona_id=None,
@@ -131,7 +131,7 @@ async def test_dual_channel_summary_stores_canonical_and_persona():
     )
     processor = MemoryProcessor(llm_provider=llm, context=None)
 
-    content, metadata, importance = await processor.process_conversation(
+    content, metadata, importance, _ = await processor.process_conversation(
         messages=_make_messages(),
         is_group_chat=False,
         persona_id=None,
@@ -166,7 +166,7 @@ async def test_canonical_summary_includes_key_facts():
     )
     processor = MemoryProcessor(llm_provider=llm, context=None)
 
-    content, metadata, _ = await processor.process_conversation(
+    content, metadata, _, _ = await processor.process_conversation(
         messages=_make_messages(),
         is_group_chat=False,
         persona_id=None,
@@ -191,7 +191,7 @@ async def test_summary_quality_normal_for_valid_response():
     )
     processor = MemoryProcessor(llm_provider=llm, context=None)
 
-    _, metadata, _ = await processor.process_conversation(
+    _, metadata, _, _ = await processor.process_conversation(
         messages=_make_messages(),
         is_group_chat=False,
         persona_id=None,
@@ -214,7 +214,7 @@ async def test_summary_quality_low_for_empty_summary():
     )
     processor = MemoryProcessor(llm_provider=llm, context=None)
 
-    _, metadata, _ = await processor.process_conversation(
+    _, metadata, _, _ = await processor.process_conversation(
         messages=_make_messages(),
         is_group_chat=False,
         persona_id=None,
@@ -237,7 +237,7 @@ async def test_summary_quality_low_for_missing_key_facts():
     )
     processor = MemoryProcessor(llm_provider=llm, context=None)
 
-    _, metadata, _ = await processor.process_conversation(
+    _, metadata, _, _ = await processor.process_conversation(
         messages=_make_messages(),
         is_group_chat=False,
         persona_id=None,
@@ -260,7 +260,7 @@ async def test_summary_quality_low_for_generic_terms():
     )
     processor = MemoryProcessor(llm_provider=llm, context=None)
 
-    _, metadata, _ = await processor.process_conversation(
+    _, metadata, _, _ = await processor.process_conversation(
         messages=_make_messages(),
         is_group_chat=False,
         persona_id=None,
@@ -427,7 +427,7 @@ async def test_process_group_chat_sets_interaction_type():
     )
     processor = MemoryProcessor(llm_provider=llm, context=None)
 
-    content, metadata, importance = await processor.process_conversation(
+    content, metadata, importance, _ = await processor.process_conversation(
         messages=_make_group_messages(),
         is_group_chat=True,
         persona_id=None,
@@ -452,7 +452,7 @@ async def test_process_group_chat_extracts_participants():
     )
     processor = MemoryProcessor(llm_provider=llm, context=None)
 
-    _, metadata, _ = await processor.process_conversation(
+    _, metadata, _, _ = await processor.process_conversation(
         messages=_make_group_messages(),
         is_group_chat=True,
         persona_id=None,
@@ -479,7 +479,7 @@ async def test_process_group_chat_dual_channel_summary():
     )
     processor = MemoryProcessor(llm_provider=llm, context=None)
 
-    content, metadata, _ = await processor.process_conversation(
+    content, metadata, _, _ = await processor.process_conversation(
         messages=_make_group_messages(),
         is_group_chat=True,
         persona_id=None,
@@ -508,7 +508,7 @@ async def test_process_group_chat_missing_participants_uses_default():
     )
     processor = MemoryProcessor(llm_provider=llm, context=None)
 
-    _, metadata, _ = await processor.process_conversation(
+    _, metadata, _, _ = await processor.process_conversation(
         messages=_make_group_messages(),
         is_group_chat=True,
         persona_id=None,
@@ -533,7 +533,7 @@ async def test_process_private_chat_no_participants_field():
     )
     processor = MemoryProcessor(llm_provider=llm, context=None)
 
-    _, metadata, _ = await processor.process_conversation(
+    _, metadata, _, _ = await processor.process_conversation(
         messages=_make_messages(),
         is_group_chat=False,
         persona_id=None,
@@ -575,7 +575,7 @@ async def test_process_group_chat_long_content():
     )
     processor = MemoryProcessor(llm_provider=llm, context=None)
 
-    content, metadata, importance = await processor.process_conversation(
+    content, metadata, importance, _ = await processor.process_conversation(
         messages=long_messages,
         is_group_chat=True,
         persona_id=None,
@@ -602,7 +602,7 @@ async def test_process_group_chat_quality_low_for_generic_terms():
     )
     processor = MemoryProcessor(llm_provider=llm, context=None)
 
-    _, metadata, _ = await processor.process_conversation(
+    _, metadata, _, _ = await processor.process_conversation(
         messages=_make_group_messages(),
         is_group_chat=True,
         persona_id=None,

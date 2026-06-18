@@ -35,6 +35,7 @@ class MemoryReflection:
         storage_tasks: set[asyncio.Task],
         storage_sessions_inflight: set[str],
         storage_state_lock: asyncio.Lock,
+        archive_store: Any = None,
     ):
         """
         初始化记忆反思模块
@@ -54,6 +55,7 @@ class MemoryReflection:
         self.config_manager = config_manager
         self.memory_engine = memory_engine
         self.memory_processor = memory_processor
+        self.archive_store = archive_store
         self.conversation_manager = conversation_manager
         self.message_utils = message_utils
         self._storage_tasks = storage_tasks
@@ -363,6 +365,7 @@ class MemoryReflection:
                         content,
                         metadata,
                         importance,
+                        conversation_text,
                     ) = await self.memory_processor.process_conversation(
                         messages=history_messages,
                         is_group_chat=is_group_chat,
@@ -403,7 +406,7 @@ class MemoryReflection:
 
                 # 正常流程：添加到记忆引擎
                 if self.memory_engine:
-                    await self.memory_engine.add_memory(
+                    doc_id = await self.memory_engine.add_memory(
                         content=content,
                         session_id=session_id,
                         persona_id=persona_id,
@@ -411,6 +414,19 @@ class MemoryReflection:
                         metadata=metadata,
                         atoms=atoms,
                     )
+
+                    if self.archive_store and self.config_manager.get(
+                        "reflection_engine.archive_conversation_enabled", False
+                    ):
+                        await self.archive_store.archive(
+                            id=doc_id,
+                            session_id=session_id,
+                            persona_id=persona_id,
+                            conversation_text=conversation_text,
+                            message_count=len(history_messages),
+                            source_start=start_index,
+                            source_end=end_index,
+                        )
 
                     logger.info(
                         f"[{session_id}] 成功存储对话记忆（{len(history_messages)}条消息，重要性={importance:.2f}）"

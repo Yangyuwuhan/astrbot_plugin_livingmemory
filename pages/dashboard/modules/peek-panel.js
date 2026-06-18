@@ -141,6 +141,8 @@ export class PeekPanel {
     // 操作按钮
     html += '<div class="memory-detail-actions">';
     html += '<button class="btn btn-sm btn-secondary" id="peek-edit-btn">' + window.t("detail.editBtn") + '</button>';
+    html += '<button class="btn btn-sm btn-primary" id="peek-rebuild-btn">' + window.t("detail.rebuildBtn") + '</button>';
+    html += '<button class="btn btn-sm btn-outline-danger" id="peek-rebuild-delete-btn">' + window.t("detail.rebuildDeleteBtn") + '</button>';
     html += '<button class="btn btn-sm btn-danger" id="peek-delete-btn">' + window.t("detail.deleteBtn") + '</button>';
     html += '</div>';
 
@@ -191,13 +193,24 @@ export class PeekPanel {
       html += '</div></div>';
     }
 
+    // 原始对话
+    html += '<div class="peek-section"><div class="peek-section-title">' + window.t("detail.originalConversation") + '</div>';
+    html += '<div class="memory-detail-content" id="detail-archive-display" style="white-space:pre-wrap;max-height:300px;overflow-y:auto">' + window.t("common.loading") + '</div></div>';
+
     document.getElementById("peek-body").innerHTML = html;
 
     // 绑定按钮事件
     const editBtn = document.getElementById("peek-edit-btn");
     const delBtn = document.getElementById("peek-delete-btn");
+    const rebuildBtn = document.getElementById("peek-rebuild-btn");
+    const rebuildDeleteBtn = document.getElementById("peek-rebuild-delete-btn");
     if (editBtn) editBtn.addEventListener("click", () => this.renderEditView(detail));
     if (delBtn) delBtn.addEventListener("click", () => this.deleteSingleMemory(parseInt(id)));
+    if (rebuildBtn) rebuildBtn.addEventListener("click", () => this.rebuildMemory(parseInt(id), false));
+    if (rebuildDeleteBtn) rebuildDeleteBtn.addEventListener("click", () => this.rebuildMemory(parseInt(id), true));
+
+    // 加载原始对话文本
+    this.loadArchiveText(id);
 
     // 加载图谱小视图
     const miniCanvas = document.getElementById("peek-mini-graph");
@@ -392,6 +405,63 @@ export class PeekPanel {
   }
 
   /**
+   * 加载原始对话文本
+   * @param {number} memoryId - 记忆 ID
+   */
+  async loadArchiveText(memoryId) {
+    const display = document.getElementById("detail-archive-display");
+    if (!display) return;
+    try {
+      const data = await this.api.get("memory/archive", { memory_id: memoryId });
+      if (data && data.found && data.conversation_text) {
+        display.textContent = data.conversation_text;
+      } else {
+        display.textContent = window.t("common.noData");
+      }
+    } catch (_) {
+      display.textContent = window.t("common.unavailable");
+    }
+  }
+
+  /**
+   * 从原始对话重建记忆
+   * @param {number} id - 记忆 ID
+   * @param {boolean} deleteOld - 是否同时删除旧记忆
+   */
+  async rebuildMemory(id, deleteOld = false) {
+    const title = deleteOld
+      ? window.t("confirm.rebuildDeleteTitle")
+      : window.t("confirm.rebuildTitle");
+    const message = deleteOld
+      ? window.t("confirm.rebuildDeleteMessage", id)
+      : window.t("confirm.rebuildMessage", id);
+
+    const confirmed = await this.showConfirmDialog(
+      title, message,
+      deleteOld ? "btn-danger" : "btn-primary"
+    );
+    if (!confirmed) return;
+
+    try {
+      const result = await this.api.post("memories/rebuild", {
+        memory_id: id,
+        delete_old: deleteOld,
+      });
+      this.showToast(
+        deleteOld
+          ? window.t("archive.rebuildDeleteSuccess", result.old_id, result.new_id)
+          : window.t("archive.rebuildSuccess", result.old_id, result.new_id)
+      );
+      this.close();
+      if (window.lmRefreshMemories) {
+        await window.lmRefreshMemories();
+      }
+    } catch (e) {
+      this.showToast(e.message || window.t("archive.rebuildFailed"), true);
+    }
+  }
+
+  /**
    * 渲染图节点详情
    * @param {Object} nodeData - 节点数据
    */
@@ -438,7 +508,7 @@ export class PeekPanel {
    * @param {string} message - 消息
    * @returns {Promise<boolean>} 用户是否确认
    */
-  showConfirmDialog(title, message) {
+  showConfirmDialog(title, message, confirmClass = "btn-danger") {
     return new Promise((resolve) => {
       this._confirmResolve = resolve;
       this._prevPeekContent = document.getElementById("peek-body").innerHTML;
@@ -448,7 +518,7 @@ export class PeekPanel {
       html += '<div class="confirm-dialog-message">' + esc(message) + '</div>';
       html += '<div class="confirm-dialog-actions">';
       html += '<button class="btn btn-secondary" id="confirm-cancel-btn">' + window.t("common.cancel") + '</button>';
-      html += '<button class="btn btn-danger" id="confirm-ok-btn">' + window.t("common.confirm") + '</button>';
+      html += '<button class="btn ' + confirmClass + '" id="confirm-ok-btn">' + window.t("common.confirm") + '</button>';
       html += '</div></div>';
 
       document.getElementById("peek-body").innerHTML = html;

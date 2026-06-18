@@ -94,6 +94,9 @@ class ReflectionEngineConfig(BaseModel):
     summary_trigger_rounds: int = Field(
         default=10, ge=1, le=100, description="触发反思的对话轮次"
     )
+    archive_conversation_enabled: bool = Field(
+        default=False, description="是否记录原始对话历史"
+    )
 
 
 class AgentToolsConfig(BaseModel):

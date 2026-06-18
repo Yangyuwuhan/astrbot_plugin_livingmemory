@@ -431,6 +431,19 @@
     "memory.deleted":     { zh: "记忆已删除", en: "Memory deleted", ru: "Память удалена" },
     "memory.deleteFailed":{ zh: "删除记忆失败", en: "Failed to delete memory", ru: "Не удалось удалить память" },
 
+    /* ---- Rebuild ---- */
+    "confirm.rebuildTitle":       { zh: "确认重建？", en: "Confirm rebuild?", ru: "Подтвердить перестроение?" },
+    "confirm.rebuildMessage":     { zh: "即将重建记忆 #{0}。新记忆将保留原对话的分析结果。", en: "Memory #{0} will be rebuilt. The new memory will preserve the analysis results.", ru: "Память #{0} будет перестроена." },
+    "confirm.rebuildDeleteTitle": { zh: "确认重建并替换？", en: "Confirm rebuild & replace?", ru: "Подтвердить перестроение и замену?" },
+    "confirm.rebuildDeleteMessage":{ zh: "即将重建记忆 #{0} 并删除旧记忆。此操作无法撤销。", en: "Memory #{0} will be rebuilt and the old one deleted. This cannot be undone.", ru: "Память #{0} будет перестроена, старая удалена. Это необратимо." },
+    "detail.rebuildBtn":          { zh: "重建", en: "Rebuild", ru: "Перестроить" },
+    "detail.rebuildDeleteBtn":    { zh: "重建并删除", en: "Rebuild & Delete", ru: "Перестроить и удалить" },
+    "detail.originalConversation":{ zh: "原始对话", en: "Original Conversation", ru: "Исходный диалог" },
+    "archive.notFound":           { zh: "未找到原始对话存档", en: "No archived conversation found", ru: "Архивный диалог не найден" },
+    "archive.rebuildSuccess":     { zh: "记忆 #{0} 已重建为 #{1}", en: "Memory #{0} rebuilt as #{1}", ru: "Память #{0} перестроена как #{1}" },
+    "archive.rebuildDeleteSuccess":{ zh: "记忆 #{0} 已重建为 #{1}，旧记忆已删除", en: "Memory #{0} rebuilt as #{1}, old deleted", ru: "Память #{0} перестроена как #{1}, старая удалена" },
+    "archive.rebuildFailed":      { zh: "重建失败", en: "Rebuild failed", ru: "Ошибка перестроения" },
+
     /* ---- Graph 2D ---- */
     "graph2d.noData":     { zh: "暂无图谱数据", en: "No graph data available", ru: "Нет данных графа" },
     "graph2d.loading":    { zh: "加载图谱中...", en: "Loading graph...", ru: "Загрузка графа..." },

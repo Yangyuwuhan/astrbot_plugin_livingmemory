@@ -205,6 +205,7 @@ class LivingMemoryPlugin(Star):
                     memory_engine=self.initializer.memory_engine,  # type: ignore[arg-type]
                     memory_processor=self.initializer.memory_processor,  # type: ignore[arg-type]
                     conversation_manager=self.initializer.conversation_manager,  # type: ignore[arg-type]
+                    archive_store=self.initializer.archive_store,
                 )
 
             # 创建命令处理器（幂等）
@@ -217,6 +218,7 @@ class LivingMemoryPlugin(Star):
                     index_validator=self.initializer.index_validator,
                     memory_processor=self.initializer.memory_processor,
                     initialization_status_callback=self._get_initialization_status_message,
+                    archive_store=self.initializer.archive_store,
                 )
 
             self._register_agent_tools_if_needed()
@@ -545,6 +547,24 @@ class LivingMemoryPlugin(Star):
         async for message in self.command_handler.handle_cleanup(
             event, dry_run=dry_run
         ):
+            yield message
+
+    @permission_type(PermissionType.ADMIN)
+    @lmem.command("context")
+    async def context(
+        self, event: AstrMessageEvent, memory_id: int
+    ) -> AsyncGenerator[MessageEventResult, None]:
+        """[Admin] View original conversation for a memory"""
+        ready, message = await self._ensure_plugin_ready()
+        if not ready:
+            yield event.plain_result(message)
+            return
+
+        if not self.command_handler:
+            yield event.plain_result(self._command_handler_not_ready_message())
+            return
+
+        async for message in self.command_handler.handle_context(event, memory_id):
             yield message
 
     @permission_type(PermissionType.ADMIN)

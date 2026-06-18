@@ -55,6 +55,7 @@ class EventHandler:
         memory_engine: MemoryEngine,
         memory_processor: MemoryProcessor,
         conversation_manager: ConversationManager,
+        archive_store: Any = None,
     ):
         """
         初始化事件处理器
@@ -103,6 +104,7 @@ class EventHandler:
             self._storage_tasks,
             self._storage_sessions_inflight,
             self._storage_state_lock,
+            archive_store=archive_store,
         )
 
     async def handle_all_group_messages(self, event: AstrMessageEvent):

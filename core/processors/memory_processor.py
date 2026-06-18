@@ -292,32 +292,36 @@ class MemoryProcessor:
 
     async def process_conversation(
         self,
-        messages: list[Message],
+        messages: list[Message] | None = None,
         is_group_chat: bool = False,
         persona_id: str | None = None,
-    ) -> tuple[str, dict[str, Any], float]:
+        conversation_text: str | None = None,
+    ) -> tuple[str, dict[str, Any], float, str]:
         """
         处理对话历史,生成结构化记忆
 
         Args:
-            messages: 消息列表(Message对象)
+            messages: 消息列表(Message对象)，与 conversation_text 二选一
             is_group_chat: 是否为群聊
             persona_id: 人格ID,用于获取人格提示词
+            conversation_text: 预格式化的对话文本，传入后跳过 _format_conversation
 
         Returns:
-            tuple: (content, metadata, importance)
+            tuple: (content, metadata, importance, conversation_text)
                 - content: 格式化的记忆内容字符串
                 - metadata: 包含结构化信息的字典
                 - importance: 重要性评分(0-1)
+                - conversation_text: 原始格式化对话文本
 
         Raises:
             Exception: 处理失败时抛出异常
         """
-        if not messages:
-            raise ValueError("消息列表不能为空")
+        if not messages and not conversation_text:
+            raise ValueError("必须提供 messages 或 conversation_text")
 
-        # 1. 格式化对话历史
-        conversation_text = self._format_conversation(messages)
+        # 1. 格式化对话历史（如有预格式化文本则跳过）
+        if conversation_text is None:
+            conversation_text = self._format_conversation(messages)
 
         # 2. 选择合适的提示词模板
         # 使用 replace 而非 format，避免对话内容中的大括号导致解析错误
@@ -390,7 +394,7 @@ class MemoryProcessor:
                 f"[MemoryProcessor] 生成的记忆内容（前200字符）:\n{content[:200]}"
             )
 
-            return content, metadata, importance
+            return content, metadata, importance, conversation_text
 
         except Exception as e:
             logger.error(f"[MemoryProcessor] 处理对话历史失败: {e}", exc_info=True)

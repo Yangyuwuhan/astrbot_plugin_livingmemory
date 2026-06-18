@@ -136,6 +136,7 @@ class MemoryEngine:
         self.atom_store = None
         self.atom_lifecycle_manager = None
         self.atom_retriever = None
+        self.archive_store = None
         self.db_connection = None
         self._search_cache_enabled = bool(self.config.get("search_cache_enabled", True))
         self._search_cache_ttl = float(
@@ -791,6 +792,8 @@ class MemoryEngine:
             await self.graph_memory_manager.batch_delete_memories(memory_ids)
         if self.atom_store is not None:
             await self.atom_store.batch_delete_by_parent(memory_ids)
+        if self.archive_store is not None:
+            await self.archive_store.delete_by_ids(memory_ids)
 
     @staticmethod
     def _safe_json_dict(value: Any) -> dict[str, Any]:
@@ -1238,6 +1241,51 @@ class MemoryEngine:
             logger.warning("[MemoryEngine] 获取记忆详情失败", exc_info=True)
             return None
 
+    async def rebuild_memory(
+        self,
+        memory_id: int,
+        content: str,
+        metadata: dict[str, Any] | None = None,
+        atoms: list | None = None,
+        delete_old: bool = False,
+    ) -> tuple[int, int]:
+        """从原始对话重建记忆，返回 (old_id, new_id)。
+
+        - delete_old=False: 仅新建记忆，不删旧
+        - delete_old=True:  新建后删除旧记忆
+        失败时自动回滚：删除已创建的新记忆。
+        """
+        merged_metadata: dict[str, Any] = dict(metadata or {})
+        merged_metadata.setdefault("_rebuild_source", "archive")
+        merged_metadata.setdefault("_rebuild_time", time.time())
+
+        new_id = await self.add_memory(
+            content=content,
+            session_id=merged_metadata.get("session_id"),
+            persona_id=merged_metadata.get("persona_id"),
+            importance=float(merged_metadata.get("importance", 0.5)),
+            metadata=merged_metadata,
+            atoms=atoms,
+        )
+
+        try:
+            if delete_old:
+                await self.delete_memory(memory_id)
+        except Exception:
+            await self.delete_memory(new_id)
+            raise
+
+        if self.archive_store:
+            try:
+                await self.archive_store.copy(src_id=memory_id, dst_id=new_id)
+            except Exception:
+                logger.warning(
+                    f"[MemoryEngine] 复制 archive {memory_id} -> {new_id} 失败",
+                    exc_info=True,
+                )
+
+        return memory_id, new_id
+
     async def update_memory(
         self,
         memory_id: int,
@@ -1456,6 +1504,8 @@ class MemoryEngine:
         try:
             if self.atom_store is not None:
                 await self.atom_store.delete_by_parent(memory_id)
+            if self.archive_store is not None:
+                await self.archive_store.delete(memory_id)
             await self._advance_write_op(op_id, "atoms_deleted", memory_id=memory_id)
         except asyncio.CancelledError:
             raise
@@ -1469,7 +1519,7 @@ class MemoryEngine:
             )
             needs_repair = True
             logger.error(
-                f"[MemoryEngine] 记忆原子删除失败，已标记待修复 (memory_id={memory_id})",
+                f"[MemoryEngine] 记忆原子/归档删除失败，已标记待修复 (memory_id={memory_id})",
                 exc_info=True,
             )
 

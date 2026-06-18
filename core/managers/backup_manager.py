@@ -29,6 +29,7 @@ _BACKUP_PATTERNS: list[str] = [
     "livingmemory_graph_documents.db",
     "livingmemory_graph.index",
     "conversations.db",
+    "archive.db",
     "decay_state.json",
     "*.db-wal",
     "*.db-shm",

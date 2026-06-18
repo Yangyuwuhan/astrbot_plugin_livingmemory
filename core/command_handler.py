@@ -29,6 +29,7 @@ class CommandHandler:
         index_validator: IndexValidator | None,
         memory_processor=None,
         initialization_status_callback=None,
+        archive_store=None,
     ):
         """
         初始化命令处理器
@@ -47,6 +48,7 @@ class CommandHandler:
         self.memory_engine = memory_engine
         self.conversation_manager = conversation_manager
         self.index_validator = index_validator
+        self.archive_store = archive_store
         self._memory_processor = memory_processor
         self.get_initialization_status = initialization_status_callback
 
@@ -408,6 +410,7 @@ class CommandHandler:
                 content,
                 metadata,
                 importance,
+                conversation_text,
             ) = await self._memory_processor.process_conversation(
                 messages=history_messages,
                 is_group_chat=is_group_chat,
@@ -429,7 +432,7 @@ class CommandHandler:
                 "triggered_by": "manual",
             }
 
-            await self.memory_engine.add_memory(
+            doc_id = await self.memory_engine.add_memory(
                 content=content,
                 session_id=session_id,
                 persona_id=persona_id,
@@ -437,6 +440,19 @@ class CommandHandler:
                 metadata=metadata,
                 atoms=atoms,
             )
+
+            if self.archive_store and self.config_manager.get(
+                "reflection_engine.archive_conversation_enabled", False
+            ):
+                await self.archive_store.archive(
+                    id=doc_id,
+                    session_id=session_id,
+                    persona_id=persona_id,
+                    conversation_text=conversation_text,
+                    message_count=len(history_messages),
+                    source_start=last_summarized_index,
+                    source_end=actual_count,
+                )
 
             await self.conversation_manager.update_session_metadata(
                 session_id, "last_summarized_index", actual_count
@@ -487,6 +503,37 @@ class CommandHandler:
                     t("reset.action_name"),
                     e,
                     t_list("error.suggestions.reset"),
+                )
+            )
+
+    async def handle_context(
+        self, event: AstrMessageEvent, memory_id: int
+    ) -> AsyncGenerator[MessageEventResult, None]:
+        """处理 /lmem context <id> 命令 — 查看记忆对应的原始对话"""
+        if not self.archive_store:
+            yield event.plain_result(
+                self._component_not_ready_message("对话存档", "/lmem context")
+            )
+            return
+
+        try:
+            record = await self.archive_store.get(memory_id)
+            if not record:
+                yield event.plain_result(t("archive.not_found", id=memory_id))
+                return
+
+            yield event.plain_result(
+                t("archive.found", id=memory_id)
+                + "\n\n"
+                + str(record["conversation_text"])
+            )
+        except Exception as e:
+            logger.error(f"获取上下文失败: {e}", exc_info=True)
+            yield event.plain_result(
+                self._format_error_message(
+                    t("archive.action_name"),
+                    e,
+                    t_list("error.suggestions.common"),
                 )
             )
 

@@ -15,6 +15,7 @@ from astrbot.api import logger
 from astrbot.api.star import Context
 from astrbot.core.provider.provider import EmbeddingProvider, Provider
 
+from ..storage.archive_store import ArchiveStore
 from ..storage.conversation_store import ConversationStore
 from ..storage.db_migration import DBMigration
 from .base.config_manager import ConfigManager
@@ -54,6 +55,7 @@ class PluginInitializer:
         self.db_migration: DBMigration | None = None
         self.conversation_manager: ConversationManager | None = None
         self.index_validator: IndexValidator | None = None
+        self.archive_store: ArchiveStore | None = None
         self.decay_scheduler: DecayScheduler | None = None
 
         # 初始化状态
@@ -545,6 +547,14 @@ class PluginInitializer:
             # 初始化索引验证器并自动重建索引
             self.index_validator = IndexValidator(str(db_path), self.db)
             await self._auto_rebuild_index_if_needed()
+
+            # 初始化 ArchiveStore（原始对话存档）
+            archive_db_path = data_dir_path / "archive.db"
+            self.archive_store = ArchiveStore(str(archive_db_path))
+            await self.archive_store.initialize()
+            if self.memory_engine:
+                self.memory_engine.archive_store = self.archive_store
+            logger.info("ArchiveStore 已初始化")
 
             # 异步初始化 TextProcessor
             if self.memory_engine and hasattr(self.memory_engine, "text_processor"):
