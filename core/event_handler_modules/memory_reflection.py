@@ -418,15 +418,22 @@ class MemoryReflection:
                     if self.archive_store and self.config_manager.get(
                         "reflection_engine.archive_conversation_enabled", False
                     ):
-                        await self.archive_store.archive(
-                            id=doc_id,
-                            session_id=session_id,
-                            persona_id=persona_id,
-                            conversation_text=conversation_text,
-                            message_count=len(history_messages),
-                            source_start=start_index,
-                            source_end=end_index,
-                        )
+                        try:
+                            await self.archive_store.archive(
+                                id=doc_id,
+                                session_id=session_id,
+                                persona_id=persona_id,
+                                conversation_text=conversation_text,
+                                message_count=len(history_messages),
+                                is_group_chat=is_group_chat,
+                                source_start=start_index,
+                                source_end=end_index,
+                            )
+                        except Exception:
+                            logger.warning(
+                                f"[{session_id}] 归档对话失败 (memory_id={doc_id})",
+                                exc_info=True,
+                            )
 
                     logger.info(
                         f"[{session_id}] 成功存储对话记忆（{len(history_messages)}条消息，重要性={importance:.2f}）"

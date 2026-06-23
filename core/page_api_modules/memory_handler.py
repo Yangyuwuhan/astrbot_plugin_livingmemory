@@ -629,7 +629,7 @@ class MemoryHandler:
         try:
             content, metadata, importance, _ = await self.memory_processor.process_conversation(
                 conversation_text=record["conversation_text"],
-                is_group_chat=False,
+                is_group_chat=record.get("is_group_chat", False),
                 persona_id=record.get("persona_id"),
             )
 

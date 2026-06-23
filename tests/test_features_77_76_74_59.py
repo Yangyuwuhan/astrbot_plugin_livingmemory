@@ -219,6 +219,7 @@ async def test_summarize_calls_processor_and_stores_memory():
             "张三提醒我明天下午三点开会",
             {"topics": ["会议"], "source_window": {}},
             0.8,
+            "原始对话文本",
         )
     )
 
@@ -268,6 +269,7 @@ async def test_summarize_updates_last_summarized_index():
             "summary text",
             {"topics": ["test"]},
             0.5,
+            "对话文本",
         )
     )
 

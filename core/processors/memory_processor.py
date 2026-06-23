@@ -337,9 +337,10 @@ class MemoryProcessor:
 
         # 3. 调用LLM生成结构化记忆
         conversation_type = "群聊" if is_group_chat else "私聊"
+        msg_count = len(messages) if messages else "N/A"
         try:
             logger.info(
-                f"[MemoryProcessor] 准备调用 LLM，对话类型={conversation_type}, 消息数={len(messages)}"
+                f"[MemoryProcessor] 准备调用 LLM，对话类型={conversation_type}, 消息数={msg_count}"
             )
             logger.debug(f"[MemoryProcessor] Prompt 模板长度={len(prompt)}")
             logger.debug(

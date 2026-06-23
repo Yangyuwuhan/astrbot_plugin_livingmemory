@@ -23,7 +23,7 @@ def memory_engine():
 def memory_processor():
     processor = Mock()
     processor.process_conversation = AsyncMock(
-        return_value=("summary", {"topics": ["t1"]}, 0.6)
+        return_value=("summary", {"topics": ["t1"]}, 0.6, "text")
     )
     processor.classify_atoms_from_metadata = Mock(return_value=[])
     return processor

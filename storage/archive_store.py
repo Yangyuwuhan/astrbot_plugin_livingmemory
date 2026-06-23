@@ -41,6 +41,7 @@ class ArchiveStore:
                     session_id TEXT NOT NULL,
                     persona_id TEXT,
                     conversation_text TEXT NOT NULL,
+                    is_group_chat INTEGER NOT NULL DEFAULT 0,
                     message_count INTEGER NOT NULL DEFAULT 0,
                     source_start INTEGER,
                     source_end INTEGER,
@@ -60,6 +61,7 @@ class ArchiveStore:
         persona_id: str | None,
         conversation_text: str,
         message_count: int = 0,
+        is_group_chat: bool = False,
         source_start: int | None = None,
         source_end: int | None = None,
     ) -> None:
@@ -69,14 +71,15 @@ class ArchiveStore:
                 """
                 INSERT OR REPLACE INTO conversation_archive (
                     id, session_id, persona_id, conversation_text,
-                    message_count, source_start, source_end, stored_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    is_group_chat, message_count, source_start, source_end, stored_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     id,
                     session_id,
                     persona_id,
                     conversation_text,
+                    int(is_group_chat),
                     message_count,
                     source_start,
                     source_end,
@@ -101,6 +104,7 @@ class ArchiveStore:
             "session_id": row["session_id"],
             "persona_id": row["persona_id"],
             "conversation_text": row["conversation_text"],
+            "is_group_chat": bool(row["is_group_chat"]),
             "message_count": int(row["message_count"]),
             "source_start": row["source_start"],
             "source_end": row["source_end"],
@@ -133,15 +137,24 @@ class ArchiveStore:
     async def copy(self, src_id: int, dst_id: int) -> None:
         """Copy an archive entry to a new ID (used during rebuild)."""
         async with self._connect() as db:
+            # Check source exists before copying
+            cursor = await db.execute(
+                "SELECT COUNT(*) FROM conversation_archive WHERE id = ?",
+                (src_id,),
+            )
+            row = await cursor.fetchone()
+            if not row or int(row[0]) == 0:
+                return
+
             await db.execute(
                 """
                 INSERT OR REPLACE INTO conversation_archive (
                     id, session_id, persona_id, conversation_text,
-                    message_count, source_start, source_end, stored_at
+                    is_group_chat, message_count, source_start, source_end, stored_at
                 )
                 SELECT
                     ?, session_id, persona_id, conversation_text,
-                    message_count, source_start, source_end, stored_at
+                    is_group_chat, message_count, source_start, source_end, stored_at
                 FROM conversation_archive
                 WHERE id = ?
                 """,

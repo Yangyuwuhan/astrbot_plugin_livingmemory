@@ -16,7 +16,7 @@ def _make_handler() -> EventHandler:
     memory_engine.add_memory = AsyncMock(return_value=1)
 
     memory_processor = Mock()
-    memory_processor.process_conversation = AsyncMock(return_value=("summary", {}, 0.5))
+    memory_processor.process_conversation = AsyncMock(return_value=("summary", {}, 0.5, "text"))
 
     conversation_manager = Mock()
     conversation_manager.add_message_from_event = AsyncMock(return_value=Mock(id=1))
